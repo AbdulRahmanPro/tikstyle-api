@@ -5,18 +5,19 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
 const mongoose = require('mongoose')
-const indexRouter = require('./routes/index');
 const apiRouter = require('./routes/api');
+const admin = require("./routes/admin")
+const { Automatic_update_URL } = require('./services/Admin_Services')
 const port = 3001
 const app = express();
-
 const corsOptions ={
-  origin:'http://localhost:3001', 
+  origin:'*', 
   credentials:true,           
   optionSuccessStatus:200
 }
 
-mongoose.connect('mongodb+srv://cluster0.pts3xm2.mongodb.net/test', {
+
+mongoose.connect('mongodb+srv://cluster0.pts3xm2.mongodb.net/Users', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   user: 'mrgames7700',
@@ -32,6 +33,8 @@ mongoose.connect('mongodb+srv://cluster0.pts3xm2.mongodb.net/test', {
   console.error("Error connecting to MongoDB:", error);
 });
 
+Automatic_update_URL()
+
 app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(express.json());
@@ -40,8 +43,8 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
 app.use(cors(corsOptions));
-  
-app.use('/', indexRouter);
+
+app.use('/admin',admin)
 app.use('/api', apiRouter);
 
 // catch 404 and forward to error handler

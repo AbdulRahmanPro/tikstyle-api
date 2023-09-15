@@ -26,24 +26,6 @@ const jwt = require("jsonwebtoken")
 
         return errors;
     };
-
-
-module.exports.login = async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        // Verify your username and password
-        const account = await AccountDB.login(username, password);
-        const token = Token_generation(account._id); // تم تغيير req._id إلى account._id
-        console.log(token);
-        res.status(201).json({ message: "Login succeeded", token: token });
-    } catch (error) {
-        const messageerror = await handleErrors(error);
-        res.status(409).json(messageerror); // تم تحديث هنا لإرسال الأخطاء بشكل مباشر
-    }
-};
-
-
-
 // 
 const Token_generation = (id) => {
     return jwt.sign({ id }, encryption, {
@@ -52,15 +34,14 @@ const Token_generation = (id) => {
 }
 // Account creation function
 module.exports.register = async (req, res) => {
-    const { email, username, name, password } = req.body
+    const { email, username, name, password } = req.body;
     try {
         // Check the email if it is in use
-        const checkEmail = await AccountDB.findOne({ email })
+        const checkEmail = await AccountDB.findOne({ email });
         if (checkEmail) {
             const errors = { email: "This email is already in use. An account cannot be created" };
             return res.status(400).json({ errors });
         }
-
         // Create a new account
         const NewAccount = await new AccountDB({
             email,
@@ -68,20 +49,17 @@ module.exports.register = async (req, res) => {
             name,
             password
         });
-
         // Save the email
         await NewAccount.save();
-
         // Code generation authorization
-        const token = Token_generation(NewAccount._id);
-
+        const token =  Token_generation(NewAccount._id);
         // Return the token code from response
-        res.status(201).json({ message: "Login succeeded", token });
+        res.status(201).json({ message: "Login succeeded", token, NewAccount, status: 201 });
     } catch (error) {
-        const errors = await handleErrors(error);
-        res.status(409).json({ errors });
+        res.status(409).json({ error     });
     }
 }
+
 
 
 // Account login function 
@@ -95,6 +73,7 @@ module.exports.login = async (req, res) => {
         res.status(201).json({ message: "Login succeeded", token: token });
     } catch (error) {
         const messageerror = await handleErrors(error); // تم تصحيح هندسة الأخطاء هنا
-        res.status(409).json({ messageerror });
+        console .log(error)
+        res.status(409).json({ error });
     }
 };
