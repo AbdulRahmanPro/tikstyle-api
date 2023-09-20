@@ -4,23 +4,29 @@ const bcrypt = require('bcrypt');
 
 
 const AccountNew = new mongoose.Schema({
-    email:{
+    email: {
         type: String,
-        required : [true,"You must enter your email"],
+        required: [true, "You must enter your email"],
+        unique: true,
+        validate: {
+            validator: function (value) {
+                return isEmail(value); // يتحقق من أن القيمة هي بريد إلكتروني صالح
+            },
+            message: props => `${props.value} is not a valid email!`,
+        },
+    },
+    username: {
+        type: String,
+        required: [true, "You must enter username"],
         unique: true
     },
-    username:{
-        type:String,
-        required:[true,"You must enter username"],
-        unique: true
+    name: {
+        type: String,
+        required: [true, "You must enter username"]
     },
-    name:{
-        type:String,
-        required:[true,"You must enter username"]
-    },
-    password:{
-        type:String,
-        required:[true,"You must enter password"]
+    password: {
+        type: String,
+        required: [true, "You must enter password"]
     }
 })
 
@@ -57,6 +63,6 @@ AccountNew.statics.login = async function (username, password) {
 };
 
 
-const Account = mongoose.model("Account",AccountNew)
+const Account = mongoose.model("Account", AccountNew)
 
 module.exports = Account

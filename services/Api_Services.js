@@ -61,7 +61,6 @@ module.exports.register = async (req, res) => {
 }
 
 
-
 // Account login function 
 module.exports.login = async (req, res) => {
     const { username, password } = req.body;

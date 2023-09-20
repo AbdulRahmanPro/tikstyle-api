@@ -1,6 +1,7 @@
 const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
+const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
@@ -16,6 +17,15 @@ const corsOptions ={
   optionSuccessStatus:200
 }
 
+app.use(session({
+  secret: 'your_secret_key', // يجب تغييره إلى مفتاح سري فعلي ومعقد
+  resave: false, // يمنع إعادة حفظ الجلسة إذا لم تتغير البيانات فيها
+  saveUninitialized: true, // يسمح بحفظ الجلسات التي لم تتم تهيئتها
+  cookie: {
+    secure: false, // يجب تعيينه على true في بيئة إنتاج باستخدام HTTPS
+    maxAge: 3600000*24, // مدة صلاحية الجلسة بالميلي ثانية (هنا هي ساعة واحدة)
+  },
+}));
 
 mongoose.connect('mongodb+srv://cluster0.pts3xm2.mongodb.net/Users', {
   useNewUrlParser: true,
