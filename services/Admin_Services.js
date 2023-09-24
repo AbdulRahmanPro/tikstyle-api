@@ -1,12 +1,28 @@
 const mongoose = require("mongoose");
 const DBURl = require("../module/UrlEncrypted");
 const DBADMIN = require("../module/Admin")
+const DBPRODUCT = require("../module/Product")
 const bcrypt = require("bcrypt");
 const nodemailer = require('nodemailer');
 const jwt = require("jsonwebtoken")
 require("dotenv").config();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 // Access to the secured encryption code
 const encryption = process.env.TOKEN_SECRET;
+
+// Access to the secured encryption code
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, '../public/images'));
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const upload = multer({ storage: storage }).single('file');
+
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -85,21 +101,21 @@ module.exports.add_admin = async (req, res) => {
         // قم بإجراء التحقق من صحة البريد الإلكتروني وكلمة المرور هنا
         const CheckEmail = await DBADMIN.findOne({ email })
 
-        if(CheckEmail){
-            res.status(403).json({message:"This email has been used before"})
-            return; 
+        if (CheckEmail) {
+            res.status(403).json({ message: "This email has been used before" })
+            return;
         }
 
-        if(!CheckEmail){
+        if (!CheckEmail) {
             const Account = new DBADMIN({
                 email,
                 password,
             });
-    
+
             await Account.save();
-    
+
             const newtoken = NewToken(Account._id);
-    
+
             res.cookie("TokenAdmin", newtoken);
             res.status(201).json({
                 message: "Welcome back, admin. Are you ready to work?",
@@ -121,8 +137,8 @@ module.exports.login_admin = async (req, res) => {
             return res.status(400).json({ message: "Invalid email or password" });
         }
         const token = NewToken(login._id);
-        res.cookie("TokenAdmin", token, { expiresIn: 1 * 24 * 60 * 60 });   
-        res.status(201).json({ message: "Welcome back, admin to start logging in",token:token});
+        res.cookie("TokenAdmin", token, { expiresIn: 1 * 24 * 60 * 60 });
+        res.status(201).json({ message: "Welcome back, admin to start logging in", token: token });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error. Contact the developer" });
@@ -130,56 +146,77 @@ module.exports.login_admin = async (req, res) => {
 };
 
 // Check the token. Is it a valid token for the admin only?
-module.exports.check_token = async (req, res) =>{
+module.exports.check_token = async (req, res) => {
     // barer token
     const barerToken = req.headers.authorization;
-    if(!barerToken){
-        res.status(403).json({message:"You are not authorized to access this page"})
+    if (!barerToken) {
+        res.status(403).json({ message: "You are not authorized to access this page" })
         return;
-    }else{
+    } else {
         const token = barerToken.split(" ")[1];
         try {
             const decoded = jwt.verify(token, encryption);
             const admin = await DBADMIN.findById(decoded.id);
-            if(!admin){
-                res.status(403).json({message:"You are not authorized to access this page"})
+            if (!admin) {
+                res.status(403).json({ message: "You are not authorized to access this page" })
                 return;
-            }else{
-                res.status(200).json({message:"Welcome back, admin to start logging in"})
+            } else {
+                res.status(200).json({ message: "Welcome back, admin to start logging in" })
                 return;
             }
         } catch (error) {
-            res.status(403).json({message:"You are not authorized to access this page"})
+            res.status(403).json({ message: "You are not authorized to access this page" })
             return;
         }
-    } 
+    }
 }
 
 // refresh token
-module.exports.refresh_token = async (req, res) =>{
+module.exports.refresh_token = async (req, res) => {
     const barerToken = req.headers.authorization;
-    if(!barerToken){
-        res.status(403).json({message:"You are not authorized to access this page"})
+    if (!barerToken) {
+        res.status(403).json({ message: "You are not authorized to access this page" })
         return;
-    }else{
+    } else {
         const token = barerToken.split(" ")[1];
         try {
             const decoded = jwt.verify(token, encryption);
             const admin = await DBADMIN.findById(decoded.id);
-            if(!admin){
-                res.status(403).json({message:"You are not authorized to access this page"})
+            if (!admin) {
+                res.status(403).json({ message: "You are not authorized to access this page" })
                 return;
-            }else{
+            } else {
                 const newtoken = NewToken(admin._id);
-                res.cookie("TokenAdmin", newtoken, { expiresIn: 1 * 24 * 60 * 60 });   
-                res.status(201).json({ message: "Welcome back, admin to start logging in",token:newtoken});
+                res.cookie("TokenAdmin", newtoken, { expiresIn: 1 * 24 * 60 * 60 });
+                res.status(201).json({ message: "Welcome back, admin to start logging in", token: newtoken });
                 return;
             }
         } catch (error) {
-            res.status(403).json({message:"You are not authorized to access this page"})
+            res.status(403).json({ message: "You are not authorized to access this page" })
             return;
         }
-    } 
+    }
 }
+
+module.exports.add_product = async (req, res) => {
+    try {
+        const { name, price, quantity, description, type, image } = req.body;
+        image = req.file.filename;
+        const newProduct = await new DBPRODUCT({
+            name,
+            quantity,
+            price,
+            description,
+            type,
+            image
+        });
+        await newProduct.save();
+        res.status(201).json({ message: "New Product" });
+        
+    } catch (error) {
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+        console.log(error);
+    }
+};
 
 

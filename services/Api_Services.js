@@ -8,6 +8,17 @@ require("dotenv").config();
 // Access to the secured encryption code
 const encryption = process.env.TOKEN_SECRET;
 const jwt = require("jsonwebtoken")
+const multer = require('multer');
+const storage = multer.diskStorage({
+
+    destination: (req, file, cb) => {
+      cb(null, './uploads/');
+    },
+    filename: (req, file, cb) => {
+      cb(null, Date.now() + '-' + file.originalname);
+    },
+  });
+   module.exports.upload = multer({ storage });
 
     const handleErrors = (error) => {
         let errors = { username: "", password: "" };
