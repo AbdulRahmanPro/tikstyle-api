@@ -13,6 +13,7 @@ const fs = require('fs');
 const encryption = process.env.TOKEN_SECRET;
 
 // Access to the secured encryption code
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, path.join(__dirname, '../public/images'));
@@ -21,8 +22,8 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
-const upload = multer({ storage: storage }).single('file');
 
+const upload = multer({ storage: storage }).array(3,"images");
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -200,22 +201,22 @@ module.exports.refresh_token = async (req, res) => {
 
 module.exports.add_product = async (req, res) => {
     try {
-        const { name, price, quantity, description, type, image } = req.body;
-        image = req.file.filename;
+        const { name, price, type, Category, quantity, images } = req.body;
+        const filename = req.files.map((file) => { return file.filename});
+        console.log(req.body);
         const newProduct = await new DBPRODUCT({
             name,
             quantity,
             price,
-            description,
+            Category,
             type,
-            image
+            images:filename
         });
         await newProduct.save();
         res.status(201).json({ message: "New Product" });
-        
     } catch (error) {
-        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
         console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
     }
 };
 

@@ -5,37 +5,26 @@ const Product = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        unique: true,
-        trim: true,
-        lowercase: true,
     },
     price: {
         type: Number,
         required: true,
-        trim: true,
-    },
-    description: {
-        type: String,
-        required: true,
-        trim: true,
-        lowercase: true,
     },
     type: {
         type: String,
         required: true,
-        trim: true,
-        lowercase: true,
+    },
+    Category: {
+        type : String,
+        required: true
     },
     quantity: {
         type: Number,
         required: true,
-        trim: true,  
     },
-    image: {
-        type: String,
+    images: {
+        type: Array,
         required: true,
-        trim: true,
-        lowercase: true,
     },
     }
 );
