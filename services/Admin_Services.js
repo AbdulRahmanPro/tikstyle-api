@@ -201,9 +201,17 @@ module.exports.refresh_token = async (req, res) => {
 
 module.exports.add_product = async (req, res) => {
     try {
-        const { name, price, type, Category, quantity, images } = req.body;
-        const filename = req.files.map((file) => { return file.filename});
-        console.log(req.body);
+        const { name, price, type, Category, quantity, images ,Description } = req.body;
+        console.log(JSON.parse(Description));
+        const filename = JSON.parse(Description).map((item) => {
+            return {
+                filename: item.name,
+                color : item.color
+
+            }
+        });
+
+        console.log(req.files);
         const newProduct = await new DBPRODUCT({
             name,
             quantity,
@@ -211,7 +219,7 @@ module.exports.add_product = async (req, res) => {
             Category,
             type,
             images:filename
-        });
+        }); 
         await newProduct.save();
         res.status(201).json({ message: "New Product" });
     } catch (error) {
@@ -219,5 +227,26 @@ module.exports.add_product = async (req, res) => {
         res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
     }
 };
+
+module.exports.get_product = async (req, res) => {
+    try {
+        const product = await DBPRODUCT.find({});
+        res.status(200).json({ product });
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+};
+
+module.exports.remove_product = async (req, res) => {
+    try {
+        const { id } = req.params;  
+        const product = await DBPRODUCT.findByIdAndDelete(id);
+        res.status(200).json({ product });
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+}
 
 
