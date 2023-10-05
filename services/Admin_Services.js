@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const DBURl = require("../module/UrlEncrypted");
 const DBADMIN = require("../module/Admin")
 const DBPRODUCT = require("../module/Product")
+const DBUSER = require("../module/Account")
 const bcrypt = require("bcrypt");
 const nodemailer = require('nodemailer');
 const jwt = require("jsonwebtoken")
@@ -230,9 +231,16 @@ module.exports.add_product = async (req, res) => {
 
 module.exports.get_product = async (req, res) => {
     try {
-        const product = await DBPRODUCT.find({});
-        res.status(200).json({ product });
-    } catch (error) {
+        const { _id } = req.body;
+        if(_id ){
+            const product = await DBPRODUCT.findById({_id});
+            res.status(200).json({ product });
+        }else{
+            const product = await DBPRODUCT.find({});
+            res.status(200).json({ product });  
+        };
+
+    } catch (error) {   
         console.log(error);
         res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
     }
@@ -240,13 +248,132 @@ module.exports.get_product = async (req, res) => {
 
 module.exports.remove_product = async (req, res) => {
     try {
-        const { id } = req.params;  
-        const product = await DBPRODUCT.findByIdAndDelete(id);
-        res.status(200).json({ product });
+        const { id  } = req.params;  
+        const productdata = await DBPRODUCT.findById({_id:id});
+        const del = productdata.images.map((item)=>{
+            fs.unlinkSync(path.join(__dirname, `../public/images/${item.filename}`));
+        })
+        if(del){
+            const product = await DBPRODUCT.findByIdAndDelete(id);
+            res.status(200).json({ product });
+        }
     } catch (error) {
         console.log(error);
         res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
     }
 }
 
+module.exports.update_product = async (req, res) => {
+    try {
+        const  { id , name , price , quantity , Category , type , images } = req.body;
+        const product = await DBPRODUCT.findById({_id:id});
+        if(product){
+            const update = await DBPRODUCT.findOneAndUpdate({_id:id},{
+                name,
+                price,
+                quantity,
+                Category,
+                type,
+                images
+            });
+            res.status(200).json({ update });
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+};
 
+module.exports.update_images = async (req, res) => {
+    try {
+        const { destination } = req.body;
+        const Description = JSON.parse(destination);
+        console.log(Description);
+
+        const { id } = req.params;
+        const response = await DBPRODUCT.findById({_id:id});
+        if(response){
+                console.log(response);
+                const image  = response.images.map((item)=>{
+                fs.unlinkSync(path.join(__dirname, `../public/images/${item.filename}`));
+                console.log(item.filename);
+            })
+            const destinationset = Description.map((item)=>{
+                return {
+                    filename:item.name,
+                    color:item.color
+                }
+            })
+              await DBPRODUCT.findOneAndUpdate({_id:id},{
+                images:destinationset
+            });
+        }
+        // const image = req.files;
+        // upload(req, res, async (err) => {
+        //     if (err instanceof multer.MulterError) {
+        //         console.log(err);
+        //         res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+        //     } else if (err) {
+        //         console.log(err);
+        //         res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+        //     } else {
+        //         const product = await DBPRODUCT.findById({_id:id});
+        //         if(product){
+        //             const filename = req.files.map((item) => {
+        //                 return {
+        //                     filename: item.filename,
+        //                     color : item.color
+        //                 }
+        //             });
+        //             const update = await DBPRODUCT.findOneAndUpdate({_id:id},{
+        //                 images:filename
+        //             });
+        //             res.status(200).json({ update });
+        //         }
+        //     }
+        // });
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+}
+module.exports.get_users = async (req, res) => {
+    try {
+        const users = await DBUSER.find({});
+        res.status(200).json({ users });
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+}
+
+module.exports.remove_user = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await DBUSER.findByIdAndDelete({_id:id});
+        res.status(200).json({ user });
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+}
+
+module.exports.update_user = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name , email , password , username } = req.body;
+        const user = await DBUSER.findById({_id:id});
+        if(user){
+            const update = await DBUSER.findOneAndUpdate({_id:id},{
+                name,
+                email,
+                password,
+                username
+            });
+            res.status(200).json({ update });
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+}
