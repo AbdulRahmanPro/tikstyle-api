@@ -72,10 +72,13 @@ app.use(
 app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
-  app.use(cookieParser());
+app.use(cookieParser());
 app.use(cors(corsOptions));
 
 // تحديد مسارات التوجيه
+app.get('/', (req, res) => {
+  res.send('Server is running now');
+});
 app.use('/admin', adminRouter);
 app.use('/api', apiRouter);
 
