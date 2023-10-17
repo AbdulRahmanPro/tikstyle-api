@@ -28,6 +28,8 @@ const AccountNew = new mongoose.Schema({
         type: String,
         required: [true, "You must enter password"]
     }
+
+}, { timestamps: true
 })
 
 AccountNew.pre("save", async function (next) {

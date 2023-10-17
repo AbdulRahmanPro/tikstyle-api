@@ -3,9 +3,11 @@ const DBURl = require("../module/UrlEncrypted");
 const DBADMIN = require("../module/Admin")
 const DBPRODUCT = require("../module/Product")
 const DBUSER = require("../module/Account")
+const DBCOUPON = require("../module/Coupon")
 const bcrypt = require("bcrypt");
 const nodemailer = require('nodemailer');
 const jwt = require("jsonwebtoken")
+const randomstring = require("randomstring");
 require("dotenv").config();
 const multer = require('multer');
 const path = require('path');
@@ -14,17 +16,20 @@ const fs = require('fs');
 const encryption = process.env.TOKEN_SECRET;
 
 // Access to the secured encryption code
+const slugify = require('slugify');
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, path.join(__dirname, '../public/images'));
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
+        const originalName = file.originalname;
+        const safeFileName = slugify(originalName, { lower: true });
+        cb(null, Date.now() + safeFileName);
     }
 });
 
-const upload = multer({ storage: storage }).array(3,"images");
+const upload = multer({ storage: storage });
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -202,15 +207,17 @@ module.exports.refresh_token = async (req, res) => {
 
 module.exports.add_product = async (req, res) => {
     try {
-        const { name, price, type, Category, quantity, images ,Description } = req.body;
+        const { name, price, type, Category, quantity, images, Description } = req.body;
+        
         console.log(JSON.parse(Description));
         const filename = JSON.parse(Description).map((item) => {
             return {
-                filename: item.name,
-                color : item.color
+                filename: `/images/${item.name}`,
+                color: item.color
 
             }
         });
+
 
         console.log(req.files);
         const newProduct = await new DBPRODUCT({
@@ -219,8 +226,9 @@ module.exports.add_product = async (req, res) => {
             price,
             Category,
             type,
-            images:filename
-        }); 
+            images: filename,
+            mainImage: `/images/${req.files[0].filename}`
+        });
         await newProduct.save();
         res.status(201).json({ message: "New Product" });
     } catch (error) {
@@ -232,15 +240,15 @@ module.exports.add_product = async (req, res) => {
 module.exports.get_product = async (req, res) => {
     try {
         const { _id } = req.body;
-        if(_id ){
-            const product = await DBPRODUCT.findById({_id});
+        if (_id) {
+            const product = await DBPRODUCT.findById({ _id });
             res.status(200).json({ product });
-        }else{
+        } else {
             const product = await DBPRODUCT.find({});
-            res.status(200).json({ product });  
+            res.status(200).json({ product });
         };
 
-    } catch (error) {   
+    } catch (error) {
         console.log(error);
         res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
     }
@@ -248,12 +256,12 @@ module.exports.get_product = async (req, res) => {
 
 module.exports.remove_product = async (req, res) => {
     try {
-        const { id  } = req.params;  
-        const productdata = await DBPRODUCT.findById({_id:id});
-        const del = productdata.images.map((item)=>{
-            fs.unlinkSync(path.join(__dirname, `../public/images/${item.filename}`));
+        const { id } = req.params;
+        const productdata = await DBPRODUCT.findById({ _id: id });
+        const del = productdata.images.map((item) => {
+            fs.unlinkSync(path.join(__dirname, `../public${item.filename}`));
         })
-        if(del){
+        if (del) {
             const product = await DBPRODUCT.findByIdAndDelete(id);
             res.status(200).json({ product });
         }
@@ -265,10 +273,10 @@ module.exports.remove_product = async (req, res) => {
 
 module.exports.update_product = async (req, res) => {
     try {
-        const  { id , name , price , quantity , Category , type , images } = req.body;
-        const product = await DBPRODUCT.findById({_id:id});
-        if(product){
-            const update = await DBPRODUCT.findOneAndUpdate({_id:id},{
+        const { id, name, price, quantity, Category, type, images } = req.body;
+        const product = await DBPRODUCT.findById({ _id: id });
+        if (product) {
+            const update = await DBPRODUCT.findOneAndUpdate({ _id: id }, {
                 name,
                 price,
                 quantity,
@@ -291,21 +299,21 @@ module.exports.update_images = async (req, res) => {
         console.log(Description);
 
         const { id } = req.params;
-        const response = await DBPRODUCT.findById({_id:id});
-        if(response){
-                console.log(response);
-                const image  = response.images.map((item)=>{
+        const response = await DBPRODUCT.findById({ _id: id });
+        if (response) {
+            console.log(response);
+            const image = response.images.map((item) => {
                 fs.unlinkSync(path.join(__dirname, `../public/images/${item.filename}`));
                 console.log(item.filename);
             })
-            const destinationset = Description.map((item)=>{
+            const destinationset = Description.map((item) => {
                 return {
-                    filename:item.name,
-                    color:item.color
+                    filename: item.name,
+                    color: item.color
                 }
             })
-              await DBPRODUCT.findOneAndUpdate({_id:id},{
-                images:destinationset
+            await DBPRODUCT.findOneAndUpdate({ _id: id }, {
+                images: destinationset
             });
         }
         // const image = req.files;
@@ -350,7 +358,7 @@ module.exports.get_users = async (req, res) => {
 module.exports.remove_user = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await DBUSER.findByIdAndDelete({_id:id});
+        const user = await DBUSER.findByIdAndDelete({ _id: id });
         res.status(200).json({ user });
     } catch (error) {
         console.log(error);
@@ -361,10 +369,10 @@ module.exports.remove_user = async (req, res) => {
 module.exports.update_user = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name , email , password , username } = req.body;
-        const user = await DBUSER.findById({_id:id});
-        if(user){
-            const update = await DBUSER.findOneAndUpdate({_id:id},{
+        const { name, email, password, username } = req.body;
+        const user = await DBUSER.findById({ _id: id });
+        if (user) {
+            const update = await DBUSER.findOneAndUpdate({ _id: id }, {
                 name,
                 email,
                 password,
@@ -377,3 +385,59 @@ module.exports.update_user = async (req, res) => {
         res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
     }
 }
+module.exports.add_coupon = async (req, res) => {
+    try {
+        const { coupon, rate } = req.body;
+        const newCoupon = await new DBCOUPON({
+            coupon,
+            rate
+        });
+        await newCoupon.save();
+        res.status(201).json({ message: "New Coupon" });
+    } catch (error) {
+
+    }
+}
+module.exports.get_coupon = async (req, res) => {
+    try {
+        const { rate } = req.body;
+        const coupondata = await DBCOUPON.find({});
+        if (coupondata && coupondata.length > 0) {
+            res.status(200).json({ message: "get coupon",coupondata });
+            return;
+        } else {
+            for (let i = 0; i < 100; i++) {
+                console.log(i);
+                const newCoupon = await new DBCOUPON({
+                    coupon: randomstring.generate(7),
+                    rate: "3"
+                });
+                await newCoupon.save();
+                if (i === 99) { // تم تحديث الشرط هنا
+                    res.status(201).json({ message: "New Coupon" });
+                    return;
+                }
+            }
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+}
+module.exports.update_coupon = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { discount } = req.body;
+        const coupondata = await DBCOUPON.findById({ _id: id });
+        if (coupondata) {
+            const update = await DBCOUPON.findOneAndUpdate({ _id: id }, {
+                rate :`${discount}` 
+            });
+            res.status(200).json({ update });
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(400).json({ message: "There is an error accessing the admin page. Please contact the developer as soon as possible" });
+    }
+}
+    
